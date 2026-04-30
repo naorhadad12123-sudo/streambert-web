@@ -114,7 +114,7 @@ export const PLAYER_SOURCES = [
     id: "2embed",
     label: "2Embed",
     tag: null,
-    note: null,
+    note: "unstable",
     supportsProgress: true,
     progressViaFrames: true,
     movieUrl: (id) => `https://www.2embed.online/embed/movie/${id}`,
