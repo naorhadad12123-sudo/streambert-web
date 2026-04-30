@@ -116,7 +116,8 @@ export default function App() {
   // pill while checking, then either a result card or a brief "nothing new" message.
   useEffect(() => {
     if (!apiKeyLoaded) return;
-    if (!storage.get(STORAGE_KEYS.NOTIFY_NEW_EPISODE)) return;
+    const notifyPref = storage.get(STORAGE_KEYS.NOTIFY_NEW_EPISODE);
+    if (notifyPref === false || notifyPref === 0) return;
 
     let cancelled = false;
 

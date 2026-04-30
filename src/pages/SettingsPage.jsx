@@ -1837,9 +1837,10 @@ function NotificationsSection() {
   const [notifyDownload, setNotifyDownload] = useState(
     () => storage.get(STORAGE_KEYS.NOTIFY_DOWNLOAD_COMPLETE) !== false,
   );
-  const [notifyEpisode, setNotifyEpisode] = useState(
-    () => !!storage.get(STORAGE_KEYS.NOTIFY_NEW_EPISODE),
-  );
+  const [notifyEpisode, setNotifyEpisode] = useState(() => {
+    const stored = storage.get(STORAGE_KEYS.NOTIFY_NEW_EPISODE);
+    return stored === null || stored === undefined ? true : !!stored;
+  });
   const [saved, setSaved] = useState(false);
 
   const saveSettings = () => {
