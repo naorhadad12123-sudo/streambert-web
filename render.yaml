@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: streambert-web
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
