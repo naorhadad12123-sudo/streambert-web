@@ -1043,8 +1043,8 @@ export default function TVPage({
     const wv = webviewRef.current;
     if (!wv) return;
     const done = () => setWebviewLoading(false);
-    wv.addEventListener("did-finish-load", done);
-    wv.addEventListener("did-fail-load", done);
+    wv.addEventListener("load", done);
+    wv.addEventListener("error", done);
 
     // Poll up to 30s for video duration (metadata may load after buffering starts)
     let attempts = 0;
@@ -1067,8 +1067,8 @@ export default function TVPage({
     }, 1000);
 
     return () => {
-      wv.removeEventListener("did-finish-load", done);
-      wv.removeEventListener("did-fail-load", done);
+      wv.removeEventListener("load", done);
+      wv.removeEventListener("error", done);
       clearInterval(pollDuration);
     };
   }, [playing, playerSource, item.id, selectedEp?.episode_number]);
@@ -1126,8 +1126,8 @@ export default function TVPage({
         handleManualSkip();
       }
     };
-    wv.addEventListener("before-input-event", handler);
-    return () => wv.removeEventListener("before-input-event", handler);
+    wv.addEventListener("__noop-before-input", handler);
+    return () => wv.removeEventListener("__noop-before-input", handler);
   }, [skipPrompt, handleManualSkip]);
 
   // Unified progress/skip timing tick for Allmanga and other sources.
@@ -1665,7 +1665,7 @@ export default function TVPage({
                     </button>
                   </div>
                 )}
-                <webview
+                <iframe
                   ref={webviewRef}
                   src={
                     pipOpen
@@ -1680,9 +1680,8 @@ export default function TVPage({
                             playerEp.episode,
                           )
                   }
-                  partition="persist:player"
-                  allowpopups="false"
-                  sandbox="allow-scripts allow-same-origin allow-forms"
+                  allow="autoplay; fullscreen; encrypted-media"
+                  allowFullScreen
                   style={{
                     position: "absolute",
                     inset: 0,
@@ -1697,7 +1696,6 @@ export default function TVPage({
                         ? "hidden"
                         : "visible",
                   }}
-                  tabIndex={-1}
                 />
                 {/* Left-side overlay button group, flex row, no fixed px offsets */}
                 <div className="player-overlay-group">

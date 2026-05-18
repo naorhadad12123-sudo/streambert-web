@@ -416,17 +416,17 @@ export default function MoviePage({
     };
   }, []);
 
-  // Attach webview load events so we know when the new source has painted
+  // Attach iframe load events so we know when the new source has painted
   useEffect(() => {
     if (!playing) return;
     const wv = webviewRef.current;
     if (!wv) return;
     const done = () => setWebviewLoading(false);
-    wv.addEventListener("did-finish-load", done);
-    wv.addEventListener("did-fail-load", done);
+    wv.addEventListener("load", done);
+    wv.addEventListener("error", done);
     return () => {
-      wv.removeEventListener("did-finish-load", done);
-      wv.removeEventListener("did-fail-load", done);
+      wv.removeEventListener("load", done);
+      wv.removeEventListener("error", done);
     };
   }, [playing, playerSource, item.id]);
 
@@ -439,95 +439,9 @@ export default function MoviePage({
         try {
           const wv = webviewRef.current;
           if (!wv) return;
-          let result;
-          // When the pop-out window is open the main webview shows about:blank
-          // -> query the pip window's webContents directly.
-          if (
-            pipWebContentsIdRef.current != null &&
-            window.electron?.queryVideoProgress
-          ) {
-            result = await window.electron.queryVideoProgress(
-              pipWebContentsIdRef.current,
-            );
-          } else if (progressViaFrames && window.electron?.queryVideoProgress) {
-            result = await window.electron.queryVideoProgress(
-              wv.getWebContentsId(),
-            );
-          } else {
-            result = await wv.executeJavaScript(`
-              (() => {
-                const v = document.querySelector('video')
-                if (!v || !v.duration || v.duration === Infinity || v.paused) return null
-                // Re-attach seek tracker if video element was recreated (e.g. quality change)
-                if (!v._seekTracked) {
-                  v._seekTracked = true
-                  v.addEventListener('seeked', () => {
-                    v._lastUserSeek = Date.now()
-                    v._lastUserSeekTo = v.currentTime
-                  })
-                }
-                return {
-                  currentTime: v.currentTime,
-                  duration: v.duration,
-                  recentUserSeek: v._lastUserSeek ? (Date.now() - v._lastUserSeek < 6000) : false,
-                  lastUserSeekTo: v._lastUserSeekTo ?? null,
-                }
-              })()
-            `);
-          }
-          if (result && result.duration > 0) {
-            const ct = result.currentTime;
-
-            // ── Resolution-change reset detection ──────────────────────────
-            // Videasy resets to 0 on quality change. We only seek back if:
-            // - ct is near zero (≤5s)
-            // - we were well into the video (>30s)
-            // - the user did NOT manually seek in the last 6s
-            const now = Date.now();
-            if (
-              lastKnownTimeRef.current > 30 &&
-              ct <= 5 &&
-              !result.recentUserSeek
-            ) {
-              if (now > seekBackCooldownRef.current) {
-                // First reset: seek back and start cooldown
-                const seekTo = lastKnownTimeRef.current;
-                seekBackCooldownRef.current = now + 8000;
-                try {
-                  await wv.executeJavaScript(`
-                    (() => {
-                      const v = document.querySelector('video')
-                      if (v) v.currentTime = ${seekTo}
-                    })()
-                  `);
-                } catch {}
-              }
-              // In both cases (first reset or cooldown): skip progress save with wrong position
-              return;
-            }
-
-            // If user seeked, update ref to their chosen position immediately
-            if (result.recentUserSeek && result.lastUserSeekTo !== null) {
-              lastKnownTimeRef.current = result.lastUserSeekTo;
-            } else {
-              lastKnownTimeRef.current = ct;
-            }
-            const p = Math.floor((ct / result.duration) * 100);
-            saveProgressRef.current(progressKey, Math.min(p, 100));
-            // Also persist actual seconds so DownloadsPage can show resume position
-            storage.set("dlTime_" + progressKey, Math.floor(ct));
-
-            // Auto-mark watched when remaining time ≤ threshold
-            const remaining = result.duration - ct;
-            if (
-              !autoMarkedRef.current &&
-              remaining <= watchedThreshold &&
-              remaining >= 0
-            ) {
-              autoMarkedRef.current = true;
-              onMarkWatchedRef.current?.(progressKey);
-            }
-          }
+          // In web mode, cross-origin iframes block JS access — progress tracking not available
+          let result = null;
+          // Progress tracking disabled in web mode (cross-origin iframes)
         } catch {}
       }, 5000);
     }, 3000);
@@ -905,7 +819,7 @@ export default function MoviePage({
                 </button>
               </div>
             )}
-            <webview
+            <iframe
               ref={webviewRef}
               src={
                 pipOpen
@@ -914,9 +828,8 @@ export default function MoviePage({
                     ? resolvedPlayerUrl || "about:blank"
                     : getSourceUrl(playerSource, "movie", item.id, null, null)
               }
-              partition="persist:player"
-              allowpopups="false"
-              sandbox="allow-scripts allow-same-origin allow-forms"
+              allow="autoplay; fullscreen; encrypted-media"
+              allowFullScreen
               style={{
                 position: "absolute",
                 inset: 0,

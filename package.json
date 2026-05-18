@@ -11,7 +11,9 @@
   "private": true,
   "scripts": {
     "dev": "vite build --watch",
-    "start": "vite build && electron .",
+    "start": "vite build && node server/index.js",
+    "build": "vite build",
+    "serve": "node server/index.js",
     "dist": "cross-env ELECTRON_DIST=1 vite build && npm run dist:linux && npm run dist:win && npm run dist:mac",
     "dist:linux": "cross-env ELECTRON_DIST=1 vite build && electron-builder --linux deb AppImage pacman --publish never",
     "dist:deb": "cross-env ELECTRON_DIST=1 vite build && electron-builder --linux deb --publish never",
@@ -21,6 +23,7 @@
     "dist:mac": "cross-env ELECTRON_DIST=1 vite build && electron-builder --mac --publish never"
   },
   "dependencies": {
+    "express": "^4.19.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
