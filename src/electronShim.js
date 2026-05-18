@@ -42,12 +42,15 @@ window.electron = {
     else localStorage.setItem(`sec_${key}`, value);
   },
 
-  // ── Window controls (no-op on web) ────────────────────────────────────────
+  // ── Window controls / close confirmation (no-op on web) ──────────────────
   windowMinimize: _noop,
   windowToggleMaximize: _noop,
   windowClose: _noop,
   windowIsMaximized: async () => false,
   quitApp: _noop,
+  onConfirmClose: _emptyHandler,
+  offConfirmClose: _noopOff,
+  respondClose: _noop,
 
   // ── External links ─────────────────────────────────────────────────────────
   openExternal: (url) => window.open(url, "_blank", "noopener"),
